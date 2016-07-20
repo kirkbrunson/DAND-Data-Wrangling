@@ -1,8 +1,7 @@
 import xml.etree.cElementTree as ET
-import re
 import json
 import pprint
-from collections import defaultdict, Counter
+from collections import Counter
 from utils import is_address, is_street, valid_street_suffixes, OSMFILE
 
 problem_suffixes = set()
