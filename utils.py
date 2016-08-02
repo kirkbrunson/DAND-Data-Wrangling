@@ -1,3 +1,5 @@
+OSMFILE = 'boston_massachusetts.osm'
+
 mapping = {"St": "Street",
            "st": "Street",
            "ST": "Street",
@@ -61,9 +63,6 @@ test_data = ['500 Broadway, Chelsea MA 02150',
              '350 Prospect, Belmont MA 02478-2662',
              '650 E. Fourth Street, South Boston MA 02127',
              '77 Massachusetts Avenue, Cambridge, MA 02139, USA']
-
-# move to config
-OSMFILE = 'boston_massachusetts.osm'
 
 
 def is_street(elem):
