@@ -12,7 +12,7 @@
 
 - Address parsing. Many nodes have both an `address` key/ value pair and `addr:XYZ` fields for a second copy of the address. I added the `is_address` and `is_street` helpers and branch address parsing/ cleaning on the return value of these helpers. 
 
-- Dirty address data: There was a fair number of various ways that addresses were written out in their respective fields. I first did some auditing to get a feel for the data, and acculmulated some cases (`test_data` in `utils.py`). From here I wrote the method `clean_address` to parse and standardize the address data. 
+- Dirty address data: There was a fair number of ways that addresses were written out in their respective fields. I first did some auditing to get a feel for the data, and then acculmulated some cases (`test_data` in `utils.py`). From there I wrote the method `clean_address` to parse and standardize the address data. Finally, the two aspects of data that I standardized were the street suffixes (see `mapping` in `utils.py`) and the state value (`Massachusetts` instead of `Ma`, `Mass`, etc).  
 
 - Often the top result for group & sum aggregation queries returns `None`. This makes sense as not all tag types will have a value. However, this should be cleaned from the data set.
 
@@ -193,7 +193,7 @@ db.boston_massachusetts.aggregate([{"$group": {"_id": "$type", "count": {"$sum":
   - 45 - alcohol
   - 43 - clothes
 
- - Top 5 Tourism Types:
+- Top 5 Tourism Types:
   - 96 - hotel
   - 53 - museum
   - 50 - artwork
