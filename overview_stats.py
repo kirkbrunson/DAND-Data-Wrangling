@@ -1,5 +1,7 @@
 from pymongo import MongoClient
 from string import capitalize
+from pprint import pprint
+
 
 client = MongoClient()
 db = client.project3
@@ -61,6 +63,29 @@ def list_sources():
     print "\nSources:"
     for i in res:
         print i['count'], '-', i['_id']
+
+
+'''
+Queries for additional stats:
+
+# coffee shops
+db.boston_massachusetts.aggregate([{$match: { "amenity" : "cafe", "cuisine": "coffee_shop" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+
+# cafes
+db.boston_massachusetts.aggregate([{$match: { "amenity" : "cafe" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+
+# uni/ colleges
+db.boston_massachusetts.aggregate([{$match: { "amenity" : {$in: ["university", "college"]} }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+
+# num bookstores
+db.boston_massachusetts.find({"shop": "books"}).count()
+
+# banks
+db.boston_massachusetts.aggregate([{$match: { "amenity" : "bank" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+
+# convenience shops
+db.boston_massachusetts.aggregate([{$match: { "shop" : "convenience" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+'''
 
 
 # call aggregation methods
