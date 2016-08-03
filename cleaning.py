@@ -42,7 +42,8 @@ def clean_address(address):
 
         # Mass state abbreviations
         if (_addr[-1].startswith('m') or _addr[-1].startswith('M')) and len(_addr[-1]) in [2, 4, 13]:
-            state = _addr.pop()
+            _addr.pop()  # rm current state value and standardize
+            state = "Massachusetts"
 
         city = ' '.join(_addr)
         return {'house_number': house_num,
