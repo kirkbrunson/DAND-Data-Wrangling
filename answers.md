@@ -12,6 +12,8 @@
 
 - Address parsing. Many nodes have both an `address` key/ value pair and `addr:XYZ` fields for a second copy of the address. I added the `is_address` and `is_street` helpers and branch address parsing/ cleaning on the return value of these helpers. 
 
+- Dirty address data: There was a fair number of various ways that addresses were written out in their respective fields. I first did some auditing to get a feel for the data, and acculmulated some cases (`test_data` in `utils.py`). From here I wrote the method `clean_address` to parse and standardize the address data. 
+
 - Often the top result for group & sum aggregation queries returns `None`. This makes sense as not all tag types will have a value. However, this should be cleaned from the data set.
 
 
@@ -22,39 +24,107 @@ MongoDB and PyMongo docs and Stack Overflow.
 
 ### Additional Stats:
 
-There is quite a bit of dirty data from these queries. For instance, there are at least four names for Starbucks ("Starbucks", "Starbuck's Coffee", "Starbucks Coffee", and "Starbucks (SMG)"). This would be a good area to do further data cleaning.
+There is quite a bit of dirty data from these queries. For instance, there are at least four names for Starbucks ("Starbucks", "Starbuck's Coffee", "Starbucks Coffee", and "Starbucks (SMG)"). This would be a good area to do further data cleaning. 
 
-- Coffee shops:
-`db.boston_massachusetts.aggregate([{$match: { "amenity" : "cafe", "cuisine": "coffee_shop" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
-
-This shows that Starbucks is the most numerous coffee shop with a total of 29 locations, followed by Dunkin's with 10. (Dunkin's tends to be classified as a cafe where it has 49 locations).
+*Important Note: I went through the returned cursors and added the variants together for the totals in this section. However, I didn't clean the data so the results here will appear slightly off.*
 
 
+- **Coffee shops:**
+```
+db.boston_massachusetts.aggregate([{$match: { "amenity" : "cafe", "cuisine": "coffee_shop" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
-- Cafes:
-`db.boston_massachusetts.aggregate([{$match: { "amenity" : "cafe" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+This shows that Starbucks is the most numerous coffee shop with a total of 29 locations, followed by Dunkin's with 10. (Dunkin's tends to be classified as a cafe where it has 49 locations). 
+
+```
+{ "_id" : "Starbucks", "count" : 25 }
+{ "_id" : "Dunkin' Donuts", "count" : 10 }
+{ "_id" : "Starbuck's Coffee", "count" : 2 }
+{ "_id" : "Ula Cafe", "count" : 1 }
+{ "_id" : "Ames Street Deli", "count" : 1 }
+
+etc ...
+```
+
+
+- **Cafes:**
+```
+db.boston_massachusetts.aggregate([{$match: { "amenity" : "cafe" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
 A more general query than above, but I think this gives a better view of the data. The same issues with data cleaning exist, and after the chains (Starbucks, Dunkin's, Au Bon Pain) it's mostly independent locations with a single or perhaps two locations.
 
+```
+{ "_id" : "Dunkin' Donuts", "count" : 46 }
+{ "_id" : "Starbucks", "count" : 34 }
+{ "_id" : "Au Bon Pain", "count" : 6 }
+{ "_id" : "Starbucks Coffee", "count" : 5 }
+{ "_id" : "Peet's Coffee", "count" : 3 }
 
-Universities / Colleges:
-`db.boston_massachusetts.aggregate([{$match: { "amenity" : {$in: ["university", "college"]} }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+etc ...
+```
+
+
+**Universities / Colleges:**
+```
+db.boston_massachusetts.aggregate([{$match: { "amenity" : {$in: ["university", "college"]} }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
 Here Boston University has the most data points with 41. However, a challenge with this query is that it doesn't take into account names that don't directly conform (Eg: "Harvard" has 5 data points, but doesn't include "Harvard Medical School", or other related locations like "Eliot House")
 
-- Number of bookstores: 25
-`db.boston_massachusetts.find({"shop": "books"}).count()`
+```
+{ "_id" : "Boston University", "count" : 41 }
+{ "_id" : "Massachusetts Institute of Technology", "count" : 10 }
+{ "_id" : "Suffolk University", "count" : 8 }
+{ "_id" : "Emerson College", "count" : 7 }
+{ "_id" : "Berklee College of Music", "count" : 7 }
 
-- Banks:
-`db.boston_massachusetts.aggregate([{$match: { "amenity" : "bank" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+etc ...
+```
+
+
+
+- **Number of bookstores:** 25
+```
+db.boston_massachusetts.find({"shop": "books"}).count()
+```
+
+- **Banks:**
+```
+db.boston_massachusetts.aggregate([{$match: { "amenity" : "bank" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
 Bank of America comes in with 14 locations followed by Citizens Bank with 11. Note the same issues with cleaning bank names exist.
 
-- Convenience shops
-`db.boston_massachusetts.aggregate([{$match: { "shop" : "convenience" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+
+```
+{ "_id" : "Bank of America", "count" : 13 }
+{ "_id" : "Citizens Bank", "count" : 10 }
+{ "_id" : null, "count" : 6 }
+{ "_id" : "TD Bank", "count" : 6 }
+{ "_id" : "Eastern Bank", "count" : 6 }
+
+etc ...
+```
+
+
+- **Convenience shops:**
+```
+db.boston_massachusetts.aggregate([{$match: { "shop" : "convenience" }}, {$group: {_id: "$name", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
 Here 7-Eleven (or 7/11) has the most locations at 14.
 
+
+```
+{ "_id" : "7-Eleven", "count" : 12 }
+{ "_id" : null, "count" : 8 }
+{ "_id" : "Tedeschi Food Shops", "count" : 5 }
+{ "_id" : "City Convenience", "count" : 2 }
+{ "_id" : "7/11", "count" : 2 }
+
+etc ...
+```
 
 
 
@@ -70,24 +140,35 @@ A couple challanges to this could be that this value doesn't exist for every dat
 - Clean phone numbers. There's a bit of variance in how phone numbers are present. Since we have a gold standard (a phone book) and precise way of representing phone numbers, we could parse and clean this data point. This shouldn't be hard, and would likely include the same or fewer challenges as cleaning addresses.
 
 
+
 ---
 
 ### Documented queries:
 
 **Number of Unique Users:**
-`db.boston_massachusetts.aggregate([{"$group": {"_id": "$created.user", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+```
+db.boston_massachusetts.aggregate([{"$group": {"_id": "$created.user", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
 **Number of nodes and ways:**
-`db.boston_massachusetts.aggregate([{"$group": {"_id": "$type", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+```
+db.boston_massachusetts.aggregate([{"$group": {"_id": "$type", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+```
 
 **Number of tag subtypes:**
 
 - Amenities:
- -  `db.boston_massachusetts.aggregate([{"$group": {"_id": "$amenity", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+ -  ```
+ db.boston_massachusetts.aggregate([{"$group": {"_id": "$amenity", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+ ```
 - Shops:
- -  `db.boston_massachusetts.aggregate([{"$group": {"_id": "$shop", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+ -  ```
+ db.boston_massachusetts.aggregate([{"$group": {"_id": "$shop", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+ ```
 - Tourism:
- -  `db.boston_massachusetts.aggregate([{"$group": {"_id": "$tourism", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])`
+ -  ```
+ db.boston_massachusetts.aggregate([{"$group": {"_id": "$tourism", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}])
+ ```
 
 
 *See `overview_stats.py` for more.*
@@ -96,81 +177,25 @@ A couple challanges to this could be that this value doesn't exist for every dat
 
 **Number of node types for amenities, shops, and tourism locations:**
 
-- Top 30 Amenity Types:
+*Run `overview_stats.py` for full details.*
+
+- Top 5 Amenity Types:
   - 1314 - parking
   - 1034 - bench
   - 725 - school
   - 607 - restaurant
   - 446 - parking_space
-  - 420 - place_of_worship
-  - 321 - library
-  - 243 - bicycle_parking
-  - 240 - cafe
-  - 186 - fast_food
-  - 143 - university
-  - 140 - bicycle_rental
-  - 110 - fire_station
-  - 101 - post_box
-  - 95 - hospital
-  - 93 - fuel
-  - 90 - bank
-  - 72 - waste_basket
-  - 67 - pub
-  - 67 - fountain
-  - 55 - police
-  - 55 - bar
-  - 54 - post_office
-  - 52 - pharmacy
-  - 50 - atm
-  - 42 - college
-  - 39 - toilets
-  - 36 - drinking_water
-  - 35 - theatre
 
-- Top 30 Shop Types:
+- Top 5 Shop Types:
   - 96 - convenience
   - 76 - supermarket
   - 57 - hairdresser
   - 45 - alcohol
   - 43 - clothes
-  - 40 - car_repair
-  - 31 - bicycle
-  - 31 - beauty
-  - 28 - bakery
-  - 25 - books
-  - 23 - car
-  - 21 - laundry
-  - 19 - gift
-  - 19 - dry_cleaning
-  - 17 - yes
-  - 16 - hardware
-  - 13 - mobile_phone
-  - 11 - electronics
-  - 11 - furniture
-  - 10 - department_store
-  - 10 - doityourself
-  - 10 - florist
-  - 9 - sports
-  - 8 - pet
-  - 8 - art
-  - 8 - music
-  - 7 - copyshop
-  - 6 - stationery
-  - 6 - optician
 
- - Top 16 Tourism Types:
+ - Top 5 Tourism Types:
   - 96 - hotel
   - 53 - museum
   - 50 - artwork
   - 31 - viewpoint
   - 29 - attraction
-  - 27 - picnic_site
-  - 22 - information
-  - 5 - guest_house
-  - 3 - hostel
-  - 3 - motel
-  - 2 - chalet
-  - 2 - aquarium
-  - 2 - zoo
-  - 1 - gallery
-  - 1 - theme_park
